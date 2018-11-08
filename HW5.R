@@ -26,21 +26,21 @@ gradient_ascent<-function(X, thres=1e-03, seed=9)
   set.seed(seed)
   A<-matrix(runif(9),nrow=3)
   W<-solve(A)
-  Y<-A %*% X
+  Y<-W %*% X
   k<-1
   while(TRUE)
   {
     ayta<-1/(1+k)
     k<-k+1
-    W<-solve(A)
-    Y<-A %*% X
     W.new <- W + ayta*(gradient(X,Y,A))
-    A<-solve(W.new)
     flag<-max(abs((W.new-W)))
     if(flag < thres)
     {
       break
     }
+    W<-W.new
+    A<-solve(W)
+    Y<-W %*% X
   }
   return(W.new)
 }
@@ -109,7 +109,7 @@ W_hat<-gradient_ascent(X.white)
 Y.white<- W_hat %*% X.white
 W<-sqcov.inv %*% W_hat
 A<-solve(W)
-Y <- A %*% X
+Y <- W %*% X
 
 png("plots/cov_Y_white.png", width=1000, height=1000, units="px")
 cov_plot(Y.white)
@@ -119,7 +119,9 @@ png("plots/cov_Y.png", width=1000, height=1000, units="px")
 cov_plot(Y)
 dev.off()
 
-Y.OUT<-apply(Y, 1, function (x) x/(2*max(x)))
+Y.OUT<-t(apply(Y, 1, function (x) x/(2*max(x))))
+temp<-Y[1,]/(2*max(Y[1,]))
+save.wave(temp, "plots/temp.wav")
 save.wave(Y.OUT[1,], "plots/src1.wav")
 save.wave(Y.OUT[2,], "plots/src2.wav")
 save.wave(Y.OUT[3,], "plots/src3.wav")
