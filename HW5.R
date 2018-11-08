@@ -4,7 +4,9 @@ load("~/Google Drive/Purdue University/Academics/Sem-3/STAT545/HW5/HW5.RData")
 library(audio)
 library(VaRES)
 library(expm)
+
 # functions----
+
 hyperbolic_secant<-function(x, log=FALSE)
 {
   pdf = x
@@ -24,14 +26,14 @@ gradient_ascent<-function(X, thres=1e-03, seed=9)
   set.seed(seed)
   A<-matrix(runif(9),nrow=3)
   W<-solve(A)
-  Y<-t(A) %*% X
+  Y<-A %*% X
   k<-1
   while(TRUE)
   {
     ayta<-1/(1+k)
     k<-k+1
     W<-solve(A)
-    Y<-t(A) %*% X
+    Y<-A %*% X
     W.new <- W + ayta*(gradient(X,Y,A))
     A<-solve(W.new)
     flag<-max(abs((W.new-W)))
@@ -65,8 +67,6 @@ cov_plot<-function(X, r=2, c=2)
       {
         plot(X[i,], X[j,], ylab=j, xlab=i)
       }
-      else{
-      }
     }
   }
 }
@@ -83,10 +83,11 @@ png("plots/cov.png", width=1000, height=1000, units="px")
 cov_plot(X)
 dev.off()
 
-X.white<-solve(sqrtm(cov)) %*% X
+sqcov.inv<-solve(sqrtm(cov))
+X.white<-sqcov.inv %*% X
 W_hat<-gradient_ascent(X.white)
 Y.white<- W_hat %*% X.white
-W<-solve(sqrtm(cov)) %*% W_hat
+W<-sqcov.inv %*% W_hat
 Y <- W %*% X
 cov_matrix(Y.white)
 
