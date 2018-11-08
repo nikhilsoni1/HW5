@@ -71,6 +71,16 @@ cov_plot<-function(X, r=2, c=2)
   }
 }
 
+
+# Simulated Data----
+
+Y.SIM<-matrix(runif(3*490000), nrow=3)
+Y.SIM<-hyperbolic_secant(Y.SIM)
+A.SIM<-matrix(runif(9),nrow=3)
+W.SIM<-solve(A.SIM)
+X.SIM<-W.SIM %*% Y.SIM
+W.SIM.GRADIENT.ASCENT<-gradient_ascent(X.SIM)
+
 # data----
 X<-matrix(c(load.wave("mike1.wav"), load.wave("mike2.wav"), load.wave("mike3.wav")), nrow=3, byrow = T)
 
