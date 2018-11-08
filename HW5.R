@@ -80,6 +80,16 @@ A.SIM<-matrix(runif(9),nrow=3)
 W.SIM<-solve(A.SIM)
 X.SIM<-W.SIM %*% Y.SIM
 W.SIM.GRADIENT.ASCENT<-gradient_ascent(X.SIM)
+A.SIM.GRADIENT.ASCENT<-solve(W.SIM.GRADIENT.ASCENT)
+Y.SIM.GRADIENT.ASCENT<-A.SIM.GRADIENT.ASCENT %*% X.SIM
+
+png("plots/cov_Y_SIM.png", width=1000, height=1000, units="px")
+cov_plot(Y.SIM)
+dev.off()
+
+png("plots/cov_Y_GA_SIM.png", width=1000, height=1000, units="px")
+cov_plot(Y.SIM.GRADIENT.ASCENT)
+dev.off()
 
 # data----
 X<-matrix(c(load.wave("mike1.wav"), load.wave("mike2.wav"), load.wave("mike3.wav")), nrow=3, byrow = T)
@@ -98,8 +108,8 @@ X.white<-sqcov.inv %*% X
 W_hat<-gradient_ascent(X.white)
 Y.white<- W_hat %*% X.white
 W<-sqcov.inv %*% W_hat
-Y <- W %*% X
-cov_matrix(Y.white)
+A<-solve(W)
+Y <- A %*% X
 
 png("plots/cov_Y_white.png", width=1000, height=1000, units="px")
 cov_plot(Y.white)
@@ -108,3 +118,8 @@ dev.off()
 png("plots/cov_Y.png", width=1000, height=1000, units="px")
 cov_plot(Y)
 dev.off()
+
+Y.OUT<-apply(Y, 1, function (x) x/(2*max(x)))
+save.wave(Y.OUT[1,], "plots/src1.wav")
+save.wave(Y.OUT[2,], "plots/src2.wav")
+save.wave(Y.OUT[3,], "plots/src3.wav")
