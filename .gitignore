@@ -44,3 +44,4 @@ HW5_files/
 *.html
 *.pdf
 *.log
+.DS_Store
