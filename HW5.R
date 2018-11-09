@@ -1,3 +1,4 @@
+# header----
 save(list=ls(all=T), file="HW5.RData")
 setwd("~/Google Drive/Purdue University/Academics/Sem-3/STAT545/HW5")
 load("~/Google Drive/Purdue University/Academics/Sem-3/STAT545/HW5/HW5.RData")
@@ -26,6 +27,7 @@ gradient_ascent<-function(X, thres=1e-03, seed=NULL)
   if(!is.null(seed))
   {
     set.seed(seed)
+    ITER.SEED<-seed
   }
   else
   {
@@ -33,7 +35,7 @@ gradient_ascent<-function(X, thres=1e-03, seed=NULL)
     ITER.SEED <- sample(1:1000, 1)
     set.seed(ITER.SEED)
   }
-  
+  store.ll<-list()
   A<-matrix(rnorm(9),nrow=3)
   W<-solve(A)
   Y<-W %*% X
@@ -51,12 +53,14 @@ gradient_ascent<-function(X, thres=1e-03, seed=NULL)
     W<-W.new
     A<-solve(W)
     Y<-W %*% X
+    store.ll<-c(store.ll, log_likelihood(W, Y))
   }
-  return(list(W=W.new, iter_seed = ITER.SEED))
+  store.ll<-unlist(store.ll)
+  return(list(W=W.new, iter_seed = ITER.SEED, iter = k, ll = store.ll))
 }
 
 cov_matrix<-function(X)
-  {
+{
   mat<-matrix(0 ,nrow = dim(X)[1], ncol = dim(X)[1])
   for (i in 1:dim(X)[1]){
     for (j in 1:dim(X)[1]){
@@ -79,6 +83,13 @@ cov_plot<-function(X, r=2, c=2)
       }
     }
   }
+}
+
+log_likelihood<-function(W, Y)
+{
+  summation<-sum(-log(pi*cosh(pi*Y/2)))
+  log_term<-dim(Y)[2]*log(abs(det(W)))
+  return(summation+log_term)
 }
 
 
@@ -109,9 +120,13 @@ X<-matrix(c(load.wave("mike1.wav"), load.wave("mike2.wav"), load.wave("mike3.wav
 W<-gradient_ascent(X)
 cov<-cov_matrix(X)
 
+cov_matrix(X)
 png("plots/cov.png", width=1000, height=1000, units="px")
 cov_plot(X)
 dev.off()
+
+cov_matrix(X.white)
+diag(dim(X.white)[1])
 
 sqcov.inv<-solve(sqrtm(cov))
 X.white<-sqcov.inv %*% X
@@ -121,6 +136,10 @@ W<-sqcov.inv %*% W_hat$W
 A<-solve(W)
 Y <- W %*% X
 
+plot(W_hat$ll, ylab = "Log-Likelihood", xlab = "Index", main = "Log-Likelihood of Iterations")
+W_hat$W
+W
+
 png("plots/cov_Y_white.png", width=1000, height=1000, units="px")
 cov_plot(Y.white)
 dev.off()
@@ -128,6 +147,24 @@ dev.off()
 png("plots/cov_Y.png", width=1000, height=1000, units="px")
 cov_plot(Y)
 dev.off()
+
+par(mfrow = c(2,3))
+hist(X[1,], main = "mike1.wav")
+hist(X[2,], main = "mike2.wav")
+hist(X[3,], main = "mike3.wav")
+hist(X.white[1,], main = "mike1.wav - Whitened")
+hist(X.white[1,], main = "mike2.wav - Whitened")
+hist(X.white[1,], main = "mike3.wav - Whitened")
+par(mfrow = c(1,1))
+
+par(mfrow = c(2,2))
+hist(Y[1,], main = "Source 1")
+hist(Y[2,], main = "Source 2")
+hist(Y[3,], main = "Source 3")
+par(mfrow = c(1,1))
+
+cov_matrix(Y)
+cov_plot(Y)
 
 Y.OUT<-t(apply(Y, 1, function (x) x/(10*max(x))))
 save.wave(Y.OUT[1,], "plots/src1.wav")
