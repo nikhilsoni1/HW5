@@ -1,0 +1,287 @@
+---
+title: "HW5"
+author: "Nikhil Soni"
+date: "11/9/2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.align="center")
+```
+
+```{r, include=FALSE}
+library(audio)
+library(VaRES)
+library(expm)
+```
+
+#### Q2.5). 
+
+```{r}
+# functions----
+
+gradient_ascent<-function(X, thres=1e-03, seed=NULL)
+{
+  if(!is.null(seed))
+  {
+    set.seed(seed)
+    ITER.SEED<-seed
+  }
+  else
+  {
+    
+    ITER.SEED <- sample(1:1000, 1)
+    set.seed(ITER.SEED)
+  }
+  store.ll<-list()
+  A<-matrix(rnorm(9),nrow=3) #  Initialization Rule Begins
+  W<-solve(A)
+  Y<-W %*% X                 #  Initialization Rule Ends
+  k<-1
+  while(TRUE)
+  {
+    ayta<-1/(1+k)            #  Learning Rate   
+    k<-k+1
+    W.new <- W + ayta*(gradient(X,Y,A))
+    flag<-max(abs((W.new-W)))
+    if(flag < thres)
+    {
+      break
+    }
+    W<-W.new
+    A<-solve(W)
+    Y<-W %*% X
+    store.ll<-c(store.ll, log_likelihood(W, Y))
+  }
+  store.ll<-unlist(store.ll)
+  return(list(W=W.new, iter_seed = ITER.SEED, iter = k, ll = store.ll))
+}
+
+gradient<-function(X, Y, A)
+{
+  # This is a helper function to calculate the gradient for each iteration.
+  summation<-(1/dim(X)[2])*(-tanh(Y) %*% t(X))
+  return(t(A)+summation)
+}
+```
+
+Arguments:
+
+* X (matrix):             Input Matrix
+* thres (numeric):        Threshold for the stopping criteria
+* seed (NULL):            User specfied seed
+  
+Value:
+
+A `list` with following components:
+
+* W (matrix):           ML-Estimate of W
+* iter_seed (integer):  Random seed for the current initialization
+* iter (integer):       Number of iterations till the threshold value is reached
+* ll (numeric):         Log-likelihood for each iteration
+
+\newpage
+
+Helper function declarations and data extraction.
+```{r}
+
+# data----
+X<-matrix(c(load.wave("mike1.wav"), load.wave("mike2.wav"), load.wave("mike3.wav")), nrow=3, byrow = T)
+
+# helper functions----
+hyperbolic_secant<-function(x, log=FALSE)
+{
+  pdf = x
+  pdf[log == FALSE] = 1/(pi*cosh(pi * x/2))
+  pdf[log == TRUE] = -log(pi) - log(cosh(pi * x/2))
+  return(pdf)
+}
+
+cov_matrix<-function(X)
+{
+  mat<-matrix(0 ,nrow = dim(X)[1], ncol = dim(X)[1])
+  for (i in 1:dim(X)[1]){
+    for (j in 1:dim(X)[1]){
+      mat[i,j]<-cov(X[i,], X[j,])
+    }
+  }
+  return(mat)
+}
+
+cov_plot<-function(X, r=2, c=2)
+{
+  par(mfrow = c(r,c))
+  for(i in 1:dim(X)[1])
+  {
+    for (j in 1:dim(X)[1])
+    {
+      if(i < j)
+      {
+        plot(X[i,], X[j,], ylab=j, xlab=i)
+      }
+    }
+  }
+}
+
+log_likelihood<-function(W, Y)
+{
+  summation<-sum(-log(pi*cosh(pi*Y/2)))
+  log_term<-dim(Y)[2]*log(abs(det(W)))
+  return(summation+log_term)
+}
+
+
+```
+
+\newpage
+
+####  Q2.6).
+
+```{r}
+cov<-cov_matrix(X)
+cov
+```
+
+```{r, include=FALSE}
+dir.create(file.path(getwd(), "plots1"), showWarnings = FALSE)
+png("plots/cov.png", width=1000, height=1000, units="px")
+cov_plot(X)
+dev.off()
+```
+
+     
+     
+![Covariance Plot of X - Row-wise](plots/cov.png){width=500px}
+
+
+\newpage
+
+####  Q2.7).
+
+```{r}
+sqcov.inv<-solve(sqrtm(cov))
+X.white<-sqcov.inv %*% X
+cov_matrix(X.white)
+diag(dim(X.white)[1])
+```
+
+As evident from the matrices above, the covariance of whitened data is practically an identity matrix since the largest number in the matrix (apart from the diag) is of order $10^{-14}$, which is considered zero.
+
+#### Q2.8).
+
+```{r}
+W_hat<-gradient_ascent(X.white, seed = 720)
+```
+
+Learning rate: $$\eta=\frac{1}{1+k}\ ,k\ is\ the\ current\ iteration$$
+
+Number of iterations:
+```{r}
+W_hat$iter
+```
+
+\newpage
+
+Log-likelihood:
+
+```{r}
+plot(W_hat$ll, ylab = "Log-Likelihood", xlab = "Index", main = "Log-Likelihood of Iterations")
+```
+
+$\hat{W}$:
+
+```{r}
+W_hat$W
+```
+
+Actual demixing matrix $W$:
+
+```{r}
+W<-sqcov.inv %*% W_hat$W
+W
+```
+
+\newpage
+
+Initializations:
+
+```{r, eval = FALSE}
+rnorm_init<-list()
+for(i in 1:10)
+{
+  W_hat<-gradient_ascent(X.white)
+  Y.white<- W_hat$W %*% X.white
+  W<-sqcov.inv %*% W_hat$W
+  A<-solve(W)
+  Y <- W %*% X
+  temp_list<-list(iter_seed = W_hat$iter_seed, cov = cov_matrix(Y))
+  rnorm_init<-c(rnorm_init, temp_list)
+  rm(temp_list)
+}
+rnorm.max.abs.cov<-list()
+i<-1
+while(i<=10)
+{
+  rnorm.max.abs.cov<-c(rnorm.max.abs.cov, max(abs(rnorm_init[[i*2]])))
+  i = i+1
+}
+rnorm.max.abs.cov<-unlist(rnorm.max.abs.cov)
+rnorm.cov.index<-which.min(rnorm.max.abs.cov)*2
+rnorm.iter.seed<-rnorm_init[[rnorm.cov.index-1]]
+```
+
+*gradient_ascent()* function is written in such a way that it can be initilized in the following ways:
+
+  1.  User specified seed
+  2.  Randomly assigns a seed using the *sample* function.
+
+Using the second way *gradient_ascent()* was run 10 times. For each run seed and covariance of the resulting **Y** were recorded. So, the seed with the least *max(abs(covariance))* was chosen. Hence, the *gradient_ascent()* was run with this seed.
+
+\newpage
+
+####  Q2.9).
+
+```{r}
+par(mfrow = c(2,3))
+hist(X[1,], main = "mike1.wav")
+hist(X[2,], main = "mike2.wav")
+hist(X[3,], main = "mike3.wav")
+hist(X.white[1,], main = "mike1.wav - Whitened")
+hist(X.white[1,], main = "mike2.wav - Whitened")
+hist(X.white[1,], main = "mike3.wav - Whitened")
+par(mfrow = c(1,1))
+```
+
+\newpage
+
+####  Q2.10).
+
+```{r}
+Y <- W %*% X
+cov_matrix(Y)
+par(mfrow = c(2,2))
+hist(Y[1,], main = "Source 1")
+hist(Y[2,], main = "Source 2")
+hist(Y[3,], main = "Source 3")
+par(mfrow = c(1,1))
+```
+
+```{r, include=FALSE}
+png("plots/cov_Y.png", width=1000, height=1000, units="px")
+cov_plot(Y)
+dev.off()
+```
+
+
+![Covariance Plot of Y - Row-wise](plots/cov_Y.png)
+
+\newpage
+
+####  Q2.11).
+
+No, because of the following reasons:
+
+  1.  W is dependent on the initialization
+  2.  W changes with the step size
