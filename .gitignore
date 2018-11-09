@@ -40,3 +40,7 @@ plots/
 *.wav
 Icon*
 _*
+HW5_files/
+*.html
+*.pdf
+*.log
