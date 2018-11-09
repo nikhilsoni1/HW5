@@ -21,10 +21,20 @@ gradient<-function(X, Y, A)
   return(t(A)+summation)
 }
 
-gradient_ascent<-function(X, thres=1e-03, seed=9)
+gradient_ascent<-function(X, thres=1e-03, seed=NULL)
 {
-  set.seed(seed)
-  A<-matrix(runif(9),nrow=3)
+  if(!is.null(seed))
+  {
+    set.seed(seed)
+  }
+  else
+  {
+    
+    ITER.SEED <- sample(1:1000, 1)
+    set.seed(ITER.SEED)
+  }
+  
+  A<-matrix(rnorm(9),nrow=3)
   W<-solve(A)
   Y<-W %*% X
   k<-1
@@ -42,7 +52,7 @@ gradient_ascent<-function(X, thres=1e-03, seed=9)
     A<-solve(W)
     Y<-W %*% X
   }
-  return(W.new)
+  return(list(W=W.new, iter_seed = ITER.SEED))
 }
 
 cov_matrix<-function(X)
@@ -105,9 +115,9 @@ dev.off()
 
 sqcov.inv<-solve(sqrtm(cov))
 X.white<-sqcov.inv %*% X
-W_hat<-gradient_ascent(X.white)
-Y.white<- W_hat %*% X.white
-W<-sqcov.inv %*% W_hat
+W_hat<-gradient_ascent(X.white, seed = 720)
+Y.white<- W_hat$W %*% X.white
+W<-sqcov.inv %*% W_hat$W
 A<-solve(W)
 Y <- W %*% X
 
@@ -119,9 +129,59 @@ png("plots/cov_Y.png", width=1000, height=1000, units="px")
 cov_plot(Y)
 dev.off()
 
-Y.OUT<-t(apply(Y, 1, function (x) x/(2*max(x))))
-temp<-Y[1,]/(2*max(Y[1,]))
-save.wave(temp, "plots/temp.wav")
+Y.OUT<-t(apply(Y, 1, function (x) x/(10*max(x))))
 save.wave(Y.OUT[1,], "plots/src1.wav")
 save.wave(Y.OUT[2,], "plots/src2.wav")
 save.wave(Y.OUT[3,], "plots/src3.wav")
+
+# Initializations----
+# runif
+runif_init<-list()
+for(i in 1:10)
+{
+  print(i)
+  W_hat<-gradient_ascent(X.white)
+  Y.white<- W_hat$W %*% X.white
+  W<-sqcov.inv %*% W_hat$W
+  A<-solve(W)
+  Y <- W %*% X
+  temp_list<-list(iter_seed = W_hat$iter_seed, cov = cov_matrix(Y))
+  runif_init<-c(runif_init, temp_list)
+  rm(temp_list)
+}
+rm(runif.max.abs.cov)
+runif.max.abs.cov<-list()
+i<-1
+while(i<=10)
+{
+  runif.max.abs.cov<-c(runif.max.abs.cov, max(abs(runif_init[[i*2]])))
+  i = i+1
+}
+runif.max.abs.cov<-unlist(runif.max.abs.cov)
+runif.cov.index<-which.min(runif.max.abs.cov)*2
+runif.iter.seed<-runif_init[[runif.cov.index-1]]
+
+# rnorm
+rnorm_init<-list()
+for(i in 1:10)
+{
+  print(i)
+  W_hat<-gradient_ascent(X.white)
+  Y.white<- W_hat$W %*% X.white
+  W<-sqcov.inv %*% W_hat$W
+  A<-solve(W)
+  Y <- W %*% X
+  temp_list<-list(iter_seed = W_hat$iter_seed, cov = cov_matrix(Y))
+  rnorm_init<-c(rnorm_init, temp_list)
+  rm(temp_list)
+}
+rnorm.max.abs.cov<-list()
+i<-1
+while(i<=10)
+{
+  rnorm.max.abs.cov<-c(rnorm.max.abs.cov, max(abs(rnorm_init[[i*2]])))
+  i = i+1
+}
+rnorm.max.abs.cov<-unlist(rnorm.max.abs.cov)
+rnorm.cov.index<-which.min(rnorm.max.abs.cov)*2
+rnorm.iter.seed<-rnorm_init[[rnorm.cov.index-1]]
