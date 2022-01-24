@@ -31,7 +31,7 @@ gradient_ascent<-function(X, thres=1e-03, seed=NULL)
   }
   else
   {
-    
+
     ITER.SEED <- sample(1:1000, 1)
     set.seed(ITER.SEED)
   }
