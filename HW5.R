@@ -31,7 +31,7 @@ gradient_ascent<-function(X, thres=1e-03, seed=NULL)
   }
   else
   {
-    
+
     ITER.SEED <- sample(1:1000, 1)
     set.seed(ITER.SEED)
   }
@@ -125,11 +125,11 @@ png("plots/cov.png", width=1000, height=1000, units="px")
 cov_plot(X)
 dev.off()
 
+sqcov.inv<-solve(sqrtm(cov))
+X.white<-sqcov.inv %*% X
 cov_matrix(X.white)
 diag(dim(X.white)[1])
 
-sqcov.inv<-solve(sqrtm(cov))
-X.white<-sqcov.inv %*% X
 W_hat<-gradient_ascent(X.white, seed = 720)
 Y.white<- W_hat$W %*% X.white
 W<-sqcov.inv %*% W_hat$W
@@ -142,10 +142,6 @@ W
 
 png("plots/cov_Y_white.png", width=1000, height=1000, units="px")
 cov_plot(Y.white)
-dev.off()
-
-png("plots/cov_Y.png", width=1000, height=1000, units="px")
-cov_plot(Y)
 dev.off()
 
 par(mfrow = c(2,3))
@@ -164,7 +160,9 @@ hist(Y[3,], main = "Source 3")
 par(mfrow = c(1,1))
 
 cov_matrix(Y)
+png("plots/cov_Y.png", width=1000, height=1000, units="px")
 cov_plot(Y)
+dev.off()
 
 Y.OUT<-t(apply(Y, 1, function (x) x/(10*max(x))))
 save.wave(Y.OUT[1,], "plots/src1.wav")
